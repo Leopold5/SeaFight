@@ -1,0 +1,75 @@
+.red {
+    background-color: darkred;
+}
+
+.green {
+    background-color: darkgreen;
+}
+
+#main {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+#chat-box{
+    position: relative;
+    height: 100%;
+}
+
+#client-box{
+    height: 100%;
+}
+
+#user-name{
+    position: absolute;
+    top: -10px;
+    left: 10px;
+}
+
+ #login {
+    position: absolute;
+    top: -15px;
+    left: 10px;
+ }
+
+#this-user-name {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+}
+
+#message-form{
+    position: absolute;
+    bottom: 10px;
+}
+
+#messages {
+    padding: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 95%;
+}
+
+#clients-list{
+    padding: 10px;
+    overflow: auto;
+    height: 95%;
+    box-sizing: border-box;
+    position: relative;
+    left: 5px;
+}
+
+.uk-panel-box-success {
+    background: #f2fae3;
+    color: #659f13;
+    border-color: rgba(101,159,19,.3);
+}
+
+.uk-panel-box-warning{
+    background: #fffceb;
+    color: #e28327;
+    border-color: rgba(226,131,39,.3);
+}

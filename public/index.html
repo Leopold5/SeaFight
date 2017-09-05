@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"
+              integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+        <title>Sea Fight single page app</title>
+        <link href="uikit.css" rel="stylesheet" type="text/css">
+        <link href="style.css" rel="stylesheet" type="text/css">
+        <link href="animate.css" rel="stylesheet" type="text/css">
+
+    </head>
+    <body>
+        <input id="login" type="hidden" size="40" ng-model = "player.name">
+        <div class="container" ng-controller="AppCtrl">
+            <h1>Sea Fight v 0.0.0.1</h1>
+
+            <div ng-if="fieldIsVisible">
+                <table width="100%" >
+                    <tbody>
+                    <tr><td colspan="2"><hr></td></tr>
+                    <tr>
+                        <td>
+                            <table>
+                                <tr><td style="text-align: center;font-weight: normal;font-size: 18pt;">Your Field</td></tr>
+                                <tr><td>
+                                        <table id="myField">
+                                            <tbody>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td ng-repeat="i in [1,2,3,4,5,6,7,8,9,10]" style = "text-align: center; font-weight: bold; font-size: 14pt;">
+                                                    {{numberToLetter(i)}}
+                                                </td>
+                                            </tr>
+                                            <tr ng-repeat="i in [1,2,3,4,5,6,7,8,9,10]">
+                                                <td style = "text-align: center; font-weight: bold; font-size: 14pt;">{{i}}</td>
+                                                <td ng-repeat="j in [1,2,3,4,5,6,7,8,9,10]" width="30" height="30">
+                                                    <button class="myGameFieldButton" ng-attr-id="{{ i*10+j-10 }}" ng-click="onButtonPress(i*10+j-10, 'my')" style="width: 100%; height: 100%" >&nbsp</button>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                </td></tr>
+                            </table>
+                        </td>
+                        <td>
+                            <table>
+                                <tr><td style="text-align: center;font-weight: normal;font-size: 18pt;">Opponent Field</td></tr>
+                                <tr><td>
+                                    <table id="enemyField">
+                                        <tbody>
+                                        <tr>
+                                            <td>&nbsp;</td>
+                                            <td ng-repeat="i in [1,2,3,4,5,6,7,8,9,10]" style = "text-align: center; font-weight: bold; font-size: 14pt;">
+                                                {{numberToLetter(i)}}
+                                            </td>
+                                        </tr>
+                                        <tr ng-repeat="i in [1,2,3,4,5,6,7,8,9,10]">
+                                            <td style = "text-align: center; font-weight: bold; font-size: 14pt;">{{i}}</td>
+                                            <td ng-repeat="j in [1,2,3,4,5,6,7,8,9,10]" width="30" height="30">
+                                                <button class="enemyGameFieldButton" ng-attr-id="{{ i*10+j-10 }}" ng-click="onButtonPress(i*10+j-10, 'enemy')" style="width: 100%; height: 100%" >&nbsp</button>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr><td colspan="2"><hr></td></tr>
+                    <tr><td colspan="2"><button ng-hide= "playersListVisible" ng-click="playerReady()" class="uk-panel-box-success" style="width: 100%">Reeeeeeeeeedy!!!!!!!!!!!</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+
+            <button class="btn btn-danger" ng-click = "startNewGame()" ng-show="!fieldIsVisible" ng-if="user">Start New Game</button>
+
+            <div ng-if="playersListVisible">
+                <table cellspacing="4"  style="width: 100%">
+                    <thead>
+                    <tr><th>Player</th><th>Player Status</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat= "player in playersList">
+                        <td>{{player.name}}</td><td ng-class='{green : player.playerStatus, red: !player.playerStatus}'>{{player.playerStatus}}</td>
+                        <td><button class="btn btn-danger" style="background-color: #6fac34" ng-click = "connect(player._id)">Connect</button></td>
+                        <td><button class="btn btn-danger" ng-click = "remove(player._id)">Remove from DB</button></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+         </div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.5/angular.js"></script>
+        <script src="controllers/controller.js"></script>
+        <script src="/socket.io.js"></script>
+        <script src="/jquery.js"></script>
+        <script src="/uikit.js"></script>
+     </body>
+ </html>
+
+<!-- FOR FUNCTIONS =============================== -->
+<!-- use a function defined in your controller to evaluate if true or false -->
+<!--  <div ng-hide="checkSomething()"></div>-->
+
+<!--
+            <div ng-show="!user">
+                <table class="table2">
+                    <thead>
+                    <tr><b>Enter your name and experience, plz!</b></tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <form ng-submit="submit()">
+                            <p>
+                                Name
+                                <input type="text" size="40" ng-model = "player.name">
+                                Experience
+                                <input type="text" size="40" ng-model = "player.experience">
+                                <input type="submit" value="Go">
+                                <input id="login" type="hidden" size="40" ng-model = "player.name">
+                            </p>
+                        </form>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>-->

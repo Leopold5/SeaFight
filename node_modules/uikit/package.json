@@ -1,0 +1,87 @@
+{
+  "name": "uikit",
+  "title": "UIkit",
+  "description": "UIkit is a lightweight and modular front-end framework for developing fast and powerful web interfaces.",
+  "version": "2.27.4",
+  "homepage": "http://www.getuikit.com",
+  "author": {
+    "name": "UIkit",
+    "email": "info@getuikit.com",
+    "url": "http://www.getuikit.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/uikit/uikit.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/uikit/uikit/blob/master/LICENSE.md"
+    }
+  ],
+  "main": "dist/js/uikit.js",
+  "dependencies": {
+    "node-promise": "^0.5.10"
+  },
+  "devDependencies": {
+    "browser-sync": "^2.6.5",
+    "del": "^0.1.2",
+    "glob": "^4.0.5",
+    "gulp": "^3.8.8",
+    "gulp-concat": "^2.3.4",
+    "gulp-header": "1.0.5",
+    "gulp-ignore": "^1.2.0",
+    "gulp-less": "latest",
+    "gulp-minify-css": "^1.1.1",
+    "gulp-rename": "^1.2.0",
+    "gulp-replace": "^0.4.0",
+    "gulp-rimraf": "latest",
+    "gulp-tap": "latest",
+    "gulp-uglify": "^0.3.1",
+    "gulp-util": "latest",
+    "gulp-watch": "^0.6.9",
+    "gulp-zip": "^2.0.2",
+    "mkdirp": "latest",
+    "promise": "latest",
+    "run-sequence": "^0.3.6"
+  },
+  "keywords": [],
+  "gitHead": "f56c1de3beb90c00d2eb91eb974f4b7486946b7e",
+  "bugs": {
+    "url": "https://github.com/uikit/uikit/issues"
+  },
+  "_id": "uikit@2.27.4",
+  "scripts": {},
+  "_shasum": "dc0a2dde23f4fbf47fb393c7056fd794f771f255",
+  "_from": "uikit@>=2.27.4 <3.0.0",
+  "_npmVersion": "4.1.2",
+  "_nodeVersion": "7.7.4",
+  "_npmUser": {
+    "name": "aheinze",
+    "email": "artur@agentejo.com"
+  },
+  "dist": {
+    "shasum": "dc0a2dde23f4fbf47fb393c7056fd794f771f255",
+    "tarball": "https://registry.npmjs.org/uikit/-/uikit-2.27.4.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "aheinze",
+      "email": "artur@agentejo.com"
+    },
+    {
+      "name": "janschoenherr",
+      "email": "jan@yootheme.com"
+    },
+    {
+      "name": "saschadube",
+      "email": "sascha.dube@gmail.com"
+    }
+  ],
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages",
+    "tmp": "tmp/uikit-2.27.4.tgz_1496219361441_0.4906960509251803"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/uikit/-/uikit-2.27.4.tgz"
+}
