@@ -13,7 +13,7 @@
         <!-- MY COMMENT-->
         <input id="login" type="hidden" size="40" ng-model = "player.name">
         <div class="container" ng-controller="AppCtrl">
-            <h1>Sea Fight v 0.0.0.1</h1>
+            <h1>Sea Fight v 1.0.0.0</h1>
 
             <div ng-if="fieldIsVisible">
                 <table width="100%" >
@@ -58,7 +58,7 @@
                                         <tr ng-repeat="i in [1,2,3,4,5,6,7,8,9,10]">
                                             <td style = "text-align: center; font-weight: bold; font-size: 14pt;">{{i}}</td>
                                             <td ng-repeat="j in [1,2,3,4,5,6,7,8,9,10]" width="30" height="30">
-                                                <button class="enemyGameFieldButton" ng-attr-id="{{ i*10+j-10 }}" ng-click="onButtonPress(i*10+j-10, 'enemy')" style="width: 100%; height: 100%" >&nbsp</button>
+                                                <button class="enemyGameFieldButton" ng-attr-id="{{ i*10+j-10 +100}}" ng-click="onButtonPress(i*10+j-10+100, 'enemy')" style="width: 100%; height: 100%" >&nbsp</button>
                                             </td>
                                         </tr>
                                         </tbody>
@@ -77,7 +77,7 @@
 
             <button class="btn btn-danger" ng-click = "startNewGame()" ng-show="!fieldIsVisible" ng-if="user">Start New Game</button>
 
-            <div ng-if="playersListVisible">
+            <div ng-if="playersListVisible" ng-hide= "gameStarted">
                 <table cellspacing="4"  style="width: 100%">
                     <thead>
                     <tr><th>Player</th><th>Player Status</th></tr>
@@ -85,8 +85,8 @@
                     <tbody>
                     <tr ng-repeat= "player in playersList">
                         <td>{{player.name}}</td><td ng-class='{green : player.playerStatus, red: !player.playerStatus}'>{{player.playerStatus}}</td>
-                        <td><button class="btn btn-danger" style="background-color: #6fac34" ng-click = "connect(player._id)">Connect</button></td>
-                        <td><button class="btn btn-danger" ng-click = "remove(player._id)">Remove from DB</button></td>
+                        <td><button class="btn btn-danger" style="background-color: #6fac34" ng-click = "connect(player.socket)">Connect</button></td>
+                      <!--  <td><button class="btn btn-danger" ng-click = "remove(player._id)">Remove from DB</button></td>-->
                     </tr>
                     </tbody>
                 </table>

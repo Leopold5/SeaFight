@@ -7,11 +7,18 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
 
     $scope.fieldIsVisible = false;
     $scope.playersListVisible=0;
-    $scope.cellStatus = {'background-color':'red', 'width':'30'};
+    $scope.gameStarted=0;
     var myPlayerId = null;
     var myPlayerName = null;
+    var mySocket = null;
+    var myShips = [];
+    var myShipsLeft = 0;
+    var myTurn = 0;
+    var opponent = [];
+    var maxShipsNumber = 4;
 
-    // Обработчики событий
+    // event handlers------------------------------------------------
+
     socket.on('setName', function(){
         function setName(){
             UIkit.modal.prompt('Введите ваш логин:', '', function(name){
@@ -37,16 +44,75 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         else{
             setName();
         }
+
+        console.log ('someone set a name');
     });
 
     socket.on('userDisconnected', function(userData){
-        console.log(userData.userName + ' is disconnected');
-        showPlayersList();
+        if (opponentSocket===userData){
+            alert('Your opponent flied the battle');
+            location.reload();
+        }
+        else{
+            console.log(userData.userName + ' is disconnected');
+            showPlayersList();
+        }
     });
 
     socket.on('newUser', function(clientsList){
-        console.log(clientsList +'cthdfr crfpfk');
+        console.log('New user in  da haus');
         showPlayersList();
+    });
+
+    socket.on('newPlayerIsReady', function() {
+        console.log ('server said: new player is ready');
+        showPlayersList();
+    });
+
+    socket.on('killedYou', function(cellId) {
+        console.log ('Someone killed me');
+        document.getElementById(cellId).style.backgroundColor ='red';
+        if (--myShipsLeft>0){
+            console.log('Still more than 0 - ',myShipsLeft);
+        }
+        else {
+            socket.emit('youWin', opponentSocket);
+            alert('You have lost');
+            location.reload();
+        }
+    });
+
+    socket.on('missedYou', function(cellId) {
+        console.log ('Someone missed me');
+        document.getElementById(cellId).style.backgroundColor ='grey';
+        myTurn = 1;
+    });
+
+    socket.on('someoneConnectedToYou', function(hisName, hisSocket) {
+        console.log ('Someone connected me');
+        alert (hisName+' connected to you on socket '+hisSocket);
+        opponentSocket = hisSocket;
+        console.log(opponentSocket);
+        $scope.gameStarted=1;
+        myTurn=0;
+        console.log(myTurn);
+        $http.get('/playersList').then(function (response) {
+            dbdata = response.data;
+            dbdata.forEach(function(item, i, arr) {
+                console.log(item);
+                console.log(item.socket);
+                console.log(opponentSocket);
+                if (item.socket === opponentSocket) opponent = item;
+                console.log(opponent.name,opponent.id,opponent.ships);
+            })
+        });
+  //      $scope.playersListVisible=0;
+    });
+
+    socket.on('youWon', function() {
+        console.log ('i Won');
+        alert('YOU ARE THE WINNER!!! Hurraaaaaaay!!!');
+        location.reload();
     });
 
     // Ангуляр - логика
@@ -56,79 +122,119 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         shipsPlaced = 0;
         shipsNumber = 0;
         $scope.fieldIsVisible = true;
-        gameStarted = false;
+        $scope.gameStarted = false;
     };
 
     $scope.playerReady = function(){
-        shipsPlaced = true;
-        shipsPositions = [];
-        ships = document.getElementsByClassName('myShipPlace');
-        for (i=0; i<ships.length; i++){
-            shipsPositions[i] = ships[i].attributes[4].value;
+        if (myShipsLeft===maxShipsNumber){
+            shipsPlaced = true;
+            reqData = {ships:myShips};
+            $http.put('/playersList/' + myPlayerId, reqData);
+            $scope.playersListVisible = true;
+            socket.emit('playerIsReady');
+            showPlayersList();
         }
-        reqData = {ships:shipsPositions};
-        $http.put('/playersList/' + myPlayerId, reqData);
-        $scope.playersListVisible = true;
-        $scope.cellStatus = {'background-color':'#6fac34', 'width':'30'}
-        showPlayersList();
+        else {
+            alert ('Place all the ships, plz');
+        }
+
     };
 
-
-    //--------------------------buttons
+    $scope.connect = function (id) {
+        if (id!==mySocket){
+            opponentSocket = id;
+            $scope.gameStarted=1;
+            myTurn=1;
+            $http.get('/playersList').then(function (response) {
+                dbdata = response.data;
+                dbdata.forEach(function(item, i, arr) {
+                    if (item.socket === opponentSocket) opponent = item;
+                    console.log(opponent.name,opponent.id,opponent.ships);
+                })
+            });
+            socket.emit('connectedYou',myPlayerName, mySocket, opponentSocket);
+        }
+        else{
+            alert('Can not connect to yourself');
+        }
+    };
 
     $scope.remove = function (id) {
         $http.delete('/playersList/'+id).then(function (responce) {showPlayersList();});
     };
 
- //   $scope.connect = function (id) {
+    $scope.onButtonPress = function (id, fieldOwner) {
+        if (fieldOwner==='my' && !shipsPlaced){
+            if (myShipsLeft<maxShipsNumber){
+                if (document.getElementById(id).style.backgroundColor !=='black'){
+                    myShips[myShips.length]= id;
+                    myShipsLeft++;
+                    console.log(myShipsLeft);
+                    console.log(maxShipsNumber);
+                    document.getElementById(id).style.backgroundColor ='black';
+                    //           socket.emit('shipPlaced');
+                }
+                else {
+                    alert ('a-a-aaaa!!!!');
+                }
+            }
+            else{
+                alert ('All ships placed');
+            }
+        }
+        else if (fieldOwner==='my' && shipsPlaced){
+            alert ('Ships are placed');
+        }
+        else if ($scope.gameStarted && fieldOwner==='enemy'){
+            if(myTurn){
+                target =id-100;
+                for (i=0; i<opponent.ships.length; i++) {
+                    if (target!==+opponent.ships[i]){
+                        console.log('missed');
+                        myTurn = 0;
+                        markMissedPlace(id);
+                    }
+                    else{
+                        console.log('BOOOM');
+                        markKilledShip(id);
+                        myTurn=1;
+                        break;
+                    }
+                }
+            }
+            else alert ("It's not your turn");
+        }
+        else if (!$scope.gameStarted && fieldOwner==='enemy'){
+            alert ('Opponent not ready');
+        }
+    };
 
- //   };
+    //--------------------------buttons
 
-  //  $scope.pressed = function(id){
-
-  //  };
 
     $scope.numberToLetter = function (number) {
         number = String.fromCharCode(+number+64);
         return number;
     };
 
-    $scope.onButtonPress = function (id, fieldOwner) {
-        if (fieldOwner==='my' && !shipsPlaced){
-            document.getElementById(id).style.backgroundColor ='red';
-            document.getElementById(id).className = 'myShipPlace';
-//            console.log('pressed'+ document.getElementById(id).id);
-//            console.log('owner:'+fieldOwner);
-        }
-        else if (fieldOwner==='my' && shipsPlaced){
-            alert ('Ships are placed');
-        }
-        else if (gameStarted && fieldOwner==='enemy'){
-            alert ('BOOM!!!');
-        }
-        else if (!gameStarted && fieldOwner==='enemy'){
-            alert ('Opponent not ready');
-        }
-    };
+    function markKilledShip(cellId) {
+        document.getElementById(cellId).style.backgroundColor ='red';
+        socket.emit('killedYou',cellId-100, opponentSocket);
+    }
 
-
-    // gamefield buttons function
-
-
-    //Other functions
+    function markMissedPlace (cellId) {
+        document.getElementById(cellId).style.backgroundColor ='grey';
+        socket.emit('missedYou',cellId-100, opponentSocket);
+    }
 
     function showPlayersList() {
         $http.get('/playersList').then(function (response) {
             $scope.playersList = response.data;
-            console.log(typeof $scope.playersList);
-            console.log($scope.playersList);
-
-           if (myPlayerId === null) {
-               console.log('first name Check');
+            if (myPlayerId === null) {
                $scope.playersList.forEach(function(item, i, arr) {
                    if (item.name === myPlayerName){
                        myPlayerId=item._id;
-                       console.log(myPlayerId + 'id');
+                       mySocket=item.socket;
                    }
                });
           }
