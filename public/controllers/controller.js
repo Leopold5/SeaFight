@@ -17,7 +17,7 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     var opponent = [];
     var maxShipsNumber = 4;
 
-    // event handlers------------------------------------------------
+// event handlers------------------------------------------------
 
     socket.on('setName', function(){
         function setName(){
@@ -115,15 +115,13 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         location.reload();
     });
 
-    // Ангуляр - логика
-
-    //Buttons--------------------------
+//HTML Buttons functions --------------------------
     $scope.startNewGame = function(){
         shipsPlaced = 0;
         shipsNumber = 0;
         $scope.fieldIsVisible = true;
         $scope.gameStarted = false;
-    };
+    }; //when startNewGame button is pressed
 
     $scope.playerReady = function(){
         if (myShipsLeft===maxShipsNumber){
@@ -138,7 +136,7 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
             alert ('Place all the ships, plz');
         }
 
-    };
+    }; //when player ready button is pressed
 
     $scope.connect = function (id) {
         if (id!==mySocket){
@@ -157,22 +155,19 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         else{
             alert('Can not connect to yourself');
         }
-    };
+    }; //when connect button is pressed
 
     $scope.remove = function (id) {
         $http.delete('/playersList/'+id).then(function (responce) {showPlayersList();});
-    };
+    }; //when remove button is pressed - this button was used for tests purposes, it's commented in index.html
 
     $scope.onButtonPress = function (id, fieldOwner) {
-        if (fieldOwner==='my' && !shipsPlaced){
+        if (fieldOwner==='my' && !shipsPlaced){                               // when placing your ships
             if (myShipsLeft<maxShipsNumber){
                 if (document.getElementById(id).style.backgroundColor !=='black'){
                     myShips[myShips.length]= id;
                     myShipsLeft++;
-                    console.log(myShipsLeft);
-                    console.log(maxShipsNumber);
                     document.getElementById(id).style.backgroundColor ='black';
-                    //           socket.emit('shipPlaced');
                 }
                 else {
                     alert ('a-a-aaaa!!!!');
@@ -185,7 +180,7 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         else if (fieldOwner==='my' && shipsPlaced){
             alert ('Ships are placed');
         }
-        else if ($scope.gameStarted && fieldOwner==='enemy'){
+        else if ($scope.gameStarted && fieldOwner==='enemy'){                           // when game started nd u press opponent field
             if(myTurn){
                 target =id-100;
                 for (i=0; i<opponent.ships.length; i++) {
@@ -207,30 +202,29 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         else if (!$scope.gameStarted && fieldOwner==='enemy'){
             alert ('Opponent not ready');
         }
-    };
+    }; //when one of the game fields buttons is pressed - this handles most of game logic
 
-    //--------------------------buttons
-
+// some service functions
 
     $scope.numberToLetter = function (number) {
         number = String.fromCharCode(+number+64);
         return number;
-    };
+    }; // transforms number to letter :)
 
     function markKilledShip(cellId) {
         document.getElementById(cellId).style.backgroundColor ='red';
         socket.emit('killedYou',cellId-100, opponentSocket);
-    }
+    }; // changes fields color
 
     function markMissedPlace (cellId) {
         document.getElementById(cellId).style.backgroundColor ='grey';
         socket.emit('missedYou',cellId-100, opponentSocket);
-    }
+    }; // changes fields color
 
     function showPlayersList() {
-        $http.get('/playersList').then(function (response) {
-            $scope.playersList = response.data;
-            if (myPlayerId === null) {
+        $http.get('/playersList').then(function (response) {                  //gets data  from DB
+            $scope.playersList = response.data;                           //and refreshes the html players table with it
+            if (myPlayerId === null) {                      // saves players info on enter
                $scope.playersList.forEach(function(item, i, arr) {
                    if (item.name === myPlayerName){
                        myPlayerId=item._id;
@@ -239,11 +233,11 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
                });
           }
         });
-    };
+    }; // generates players table and used for refreshing it
 
 }]);
 
-// Динамическая таблица
+// some table generator i was going to use :)
 
 /*     $scope.createTable = function(targetPlaceId){if(!flag){
         var htmlTable = document.getElementById(targetPlaceId);

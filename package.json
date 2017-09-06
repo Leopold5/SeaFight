@@ -1,0 +1,30 @@
+{
+  "name": "seafight",
+  "version": "1.0.0",
+  "description": "classic game on MEAN stack",
+  "main": "server.js",
+  "dependencies": {
+    "animate.css": "^3.5.2",
+    "body-parser": "^1.17.2",
+    "express": "^4.15.4",
+    "jquery": "^3.2.1",
+    "mongojs": "^2.4.1",
+    "socket.io": "^2.0.3",
+    "uikit": "^2.27.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Leopold5/SeaFight.git"
+  },
+  "author": "vladimir nikulo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Leopold5/SeaFight/issues"
+  },
+  "homepage": "https://github.com/Leopold5/SeaFight#readme"
+}

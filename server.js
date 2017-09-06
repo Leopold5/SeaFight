@@ -3,18 +3,13 @@ var app = express();
 var mongojs =require('mongojs');
 var db = mongojs ('playersList', ['playersList']);
 var bodyParser = require('body-parser');
-
-
-
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
 server.listen(3000, 'localhost', function(){});
 
-
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
-
 
 app.get('/socket.io.js', function(req,res){
     res.sendFile(__dirname+'/node_modules/socket.io-client/dist/socket.io.js');});
@@ -27,20 +22,19 @@ app.get('/uikit.css', function(req,res){
 app.get('/animate.css', function(req,res){
     res.sendFile(__dirname+'/node_modules/animate.css/animate.min.css');});
 
-
-
- io.on('connection', function(socket){
+io.on('connection', function(socket){
+// this block handles users connecting and disconnecting, sends apropriate events and updates db accordingly
     function setName(name){
-        if(name != undefined && name != ''){  // если имя не пустое
-            socket.session = {};   // создаем объект с данными сокета
-            socket.session.userName = name;   // помещаем в объект имя пользователя
+        if(name != undefined && name != ''){
+            socket.session = {};
+            socket.session.userName = name;
 
-            socket.broadcast.emit('newUser', socket.session); //отправляем всем сокетам, кроме текущего получившийся объект в событии newUser
+            socket.broadcast.emit('newUser', socket.session);
        }
-        else //если же имя пришло пустое
-            socket.emit('setName');  //запрашиваем его снова
+        else
+            socket.emit('setName');
     }
-    setName(null);  //вызываем функцию при первом подключении с пустым параметром name
+    setName(null);
 
     socket.on('setName', function(name){
          if(name.length > 0){
@@ -58,16 +52,11 @@ app.get('/animate.css', function(req,res){
          }
      });
 
+// here are handlers for game logic events
+
     socket.on ('playerIsReady',function(player){
- //       console.log('Player Ready');
         io.sockets.emit('newPlayerIsReady');
-
-/*        Object.keys(io.sockets.sockets).forEach(function(id) {
-            console.log("ID:",id)  // socketId
-        });*/
-
     });
-
     socket.on ('killedYou', function (cell,player) {
         socket.to(player).emit('killedYou', cell);
     });
@@ -77,12 +66,14 @@ app.get('/animate.css', function(req,res){
     socket.on ('connectedYou', function (initiatorName,initiatorSocket, recipientName) {
         socket.to(recipientName).emit('someoneConnectedToYou', initiatorName,initiatorSocket);
     });
-     socket.on ('youWin', function (player) {
+    socket.on ('youWin', function (player) {
          console.log('we got a winner');
          socket.to(player).emit('youWon');
      });
+
 });
 
+//DB requests handlers
 
 app.get ('/playersList', function (req, res) {
     db.playersList.find(function (err, docs) {
@@ -116,6 +107,4 @@ app.put('/playersList/:id', function (req, res) {
     );
 });
 
-
-console.log('Server running');
-db.playersList.remove({});
+db.playersList.remove({});  // clears the DB on server start to fix some bugs
