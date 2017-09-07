@@ -30,27 +30,27 @@ io.on('connection', function(socket){
             socket.session.userName = name;
 
             socket.broadcast.emit('newUser', socket.session);
-       }
+        }
         else
             socket.emit('setName');
     }
     setName(null);
 
     socket.on('setName', function(name){
-         if(name.length > 0){
-             db.playersList.insert({name:name, socket:socket.id}, function (err, docs){});
-             setName(name);
-         }
-         else
-             socket.emit('setName');
+        if(name.length > 0){
+            db.playersList.insert({name:name, socket:socket.id}, function (err, docs){});
+            setName(name);
+        }
+        else
+            socket.emit('setName');
     });
 
     socket.on('disconnect', function(){
-         if(socket.session){
-             io.sockets.emit('userDisconnected', socket.id);
-             db.playersList.remove({name: socket.session.userName},  function (err, doc){});
-         }
-     });
+        if(socket.session){
+            io.sockets.emit('userDisconnected', socket.id);
+            db.playersList.remove({name: socket.session.userName},  function (err, doc){});
+        }
+    });
 
 // here are handlers for game logic events
 
@@ -63,13 +63,12 @@ io.on('connection', function(socket){
     socket.on ('missedYou', function (cell,player) {
         socket.to(player).emit('missedYou', cell);
     });
-    socket.on ('connectedYou', function (initiatorName,initiatorSocket, recipientName) {
-        socket.to(recipientName).emit('someoneConnectedToYou', initiatorName,initiatorSocket);
+    socket.on ('connectedYou', function (initiatorName, initiatorSocket, recipientName) {
+        socket.to(recipientName).emit('someoneConnectedToYou', initiatorName, initiatorSocket);
     });
     socket.on ('youWin', function (player) {
-         console.log('we got a winner');
-         socket.to(player).emit('youWon');
-     });
+        socket.to(player).emit('youWon');
+    });
 
 });
 
@@ -100,7 +99,7 @@ app.put('/playersList/:id', function (req, res) {
     var id = req.params.id;
     db.playersList.findAndModify({
             query: {_id: mongojs.ObjectId(id)},
-            update: {$set: {playerStatus:'ready', ships: req.body.ships}},
+            update: {$set: {playerStatus:'ready', field: req.body.field}},
             new: true}, function (err, doc) {
             res.json(doc);
         }

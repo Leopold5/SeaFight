@@ -5,17 +5,39 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     var server = 'localhost';
     var socket = io.connect(server + ':' + port);
 
+// Game settings ----------------------
+    var maxShipsNumber = 4;
+    var a=10;               //number of columns in the field
+    var b = 10;             //number of rows in the field
+// Game view  ---------------------
     $scope.fieldIsVisible = false;
     $scope.playersListVisible=0;
     $scope.gameStarted=0;
+    $scope.colomnsNumberArray = [];
+    for (var i = 0; i < a; i++){
+        $scope.colomnsNumberArray.push(i);
+    }
+    $scope.rowsNumberArray = [];
+    for (var i = 0; i < b; i++){
+        $scope.rowsNumberArray.push(i);
+    }
+// Game session ----------------------
     var myPlayerId = null;
     var myPlayerName = null;
     var mySocket = null;
-    var myShips = [];
-    var myShipsLeft = 0;
+    var opponentSocket = null;
+    var shipsPlaced = 0;
     var myTurn = 0;
-    var opponent = [];
-    var maxShipsNumber = 4;
+
+    $scope.myField = [];
+    $scope.opponentField = [];
+    $scope.opponentFieldHidden = [];
+    for (var i = 0; i < a; i++){
+        for (var j = 0; j < b; j++) {
+            $scope.myField[i*10 + j] = 'emptyButton';
+            $scope.opponentField[i * 10 + j] = 'emptyButton';
+        }
+    }
 
 // event handlers------------------------------------------------
 
@@ -71,9 +93,10 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
 
     socket.on('killedYou', function(cellId) {
         console.log ('Someone killed me');
-        document.getElementById(cellId).style.backgroundColor ='red';
-        if (--myShipsLeft>0){
-            console.log('Still more than 0 - ',myShipsLeft);
+        $scope.myField[cellId]='shipKilledButton';
+        document.getElementById(cellId).innerText ='X';
+        if (--shipsPlaced>0){
+            console.log('Still more than 0 - ',shipsPlaced);
         }
         else {
             socket.emit('youWin', opponentSocket);
@@ -84,7 +107,8 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
 
     socket.on('missedYou', function(cellId) {
         console.log ('Someone missed me');
-        document.getElementById(cellId).style.backgroundColor ='grey';
+        $scope.myField[cellId]='missedButton';
+        document.getElementById(cellId).innerText ='X';
         myTurn = 1;
     });
 
@@ -99,14 +123,9 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         $http.get('/playersList').then(function (response) {
             dbdata = response.data;
             dbdata.forEach(function(item, i, arr) {
-                console.log(item);
-                console.log(item.socket);
-                console.log(opponentSocket);
-                if (item.socket === opponentSocket) opponent = item;
-                console.log(opponent.name,opponent.id,opponent.ships);
+                if (item.socket === opponentSocket) $scope.opponentFieldHidden = item.field;
             })
         });
-  //      $scope.playersListVisible=0;
     });
 
     socket.on('youWon', function() {
@@ -116,18 +135,19 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     });
 
 //HTML Buttons functions --------------------------
+
     $scope.startNewGame = function(){
-        shipsPlaced = 0;
+        allShipsPlaced = 0;
         shipsNumber = 0;
         $scope.fieldIsVisible = true;
         $scope.gameStarted = false;
     }; //when startNewGame button is pressed
 
     $scope.playerReady = function(){
-        if (myShipsLeft===maxShipsNumber){
-            shipsPlaced = true;
-            reqData = {ships:myShips};
-            $http.put('/playersList/' + myPlayerId, reqData);
+        if (shipsPlaced===maxShipsNumber){
+            allShipsPlaced = true;
+            reqData = {field:$scope.myField};
+            $http.put('/playersList/' + myPlayerId, reqData); // send your field data to db
             $scope.playersListVisible = true;
             socket.emit('playerIsReady');
             showPlayersList();
@@ -146,8 +166,10 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
             $http.get('/playersList').then(function (response) {
                 dbdata = response.data;
                 dbdata.forEach(function(item, i, arr) {
-                    if (item.socket === opponentSocket) opponent = item;
-                    console.log(opponent.name,opponent.id,opponent.ships);
+                    if (item.socket === opponentSocket) {$scope.opponentFieldHidden = item.field;
+               //         opponent = item;
+                    }
+                    console.log($scope.opponentFieldHidden);
                 })
             });
             socket.emit('connectedYou',myPlayerName, mySocket, opponentSocket);
@@ -161,48 +183,64 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         $http.delete('/playersList/'+id).then(function (responce) {showPlayersList();});
     }; //when remove button is pressed - this button was used for tests purposes, it's commented in index.html
 
-    $scope.onButtonPress = function (id, fieldOwner) {
-        if (fieldOwner==='my' && !shipsPlaced){                               // when placing your ships
-            if (myShipsLeft<maxShipsNumber){
-                if (document.getElementById(id).style.backgroundColor !=='black'){
-                    myShips[myShips.length]= id;
-                    myShipsLeft++;
-                    document.getElementById(id).style.backgroundColor ='black';
-                }
-                else {
-                    alert ('a-a-aaaa!!!!');
-                }
-            }
-            else{
-                alert ('All ships placed');
-            }
+    $scope.onButtonPress = function (coords, fieldOwner) {
+        if (fieldOwner==='my' && !allShipsPlaced){                               // when placing your ships
+            placeNewShip(coords);
         }
-        else if (fieldOwner==='my' && shipsPlaced){
+        else if (fieldOwner==='my' && allShipsPlaced){
             alert ('Ships are placed');
         }
-        else if ($scope.gameStarted && fieldOwner==='enemy'){                           // when game started nd u press opponent field
-            if(myTurn){
-                target =id-100;
-                for (i=0; i<opponent.ships.length; i++) {
-                    if (target!==+opponent.ships[i]){
-                        console.log('missed');
-                        myTurn = 0;
-                        markMissedPlace(id);
-                    }
-                    else{
-                        console.log('BOOOM');
-                        markKilledShip(id);
-                        myTurn=1;
-                        break;
-                    }
-                }
-            }
-            else alert ("It's not your turn");
+        else if (fieldOwner==='enemy' && $scope.gameStarted){                           // when game started and u press opponent field
+           shootHere(coords);
         }
-        else if (!$scope.gameStarted && fieldOwner==='enemy'){
+        else if (fieldOwner==='enemy' && !$scope.gameStarted){
             alert ('Opponent not ready');
         }
-    }; //when one of the game fields buttons is pressed - this handles most of game logic
+    }; //when one of the game fields buttons is pressed
+
+// Game logic functions----------------------
+
+    function placeNewShip(coords) {
+        if (shipsPlaced<maxShipsNumber){
+            if ($scope.myField[coords]==='emptyButton'){
+                $scope.myField[coords]= 'myShipButton';
+                shipsPlaced++;
+            }
+            else {
+                alert ('a-a-aaaa!!!!');
+            }
+        }
+        else{
+            alert ('All ships placed');
+        }
+    };
+
+    function shootHere (coords){
+        if(myTurn){
+            if ($scope.opponentFieldHidden[coords]==='emptyButton'){
+                console.log('missed');
+                myTurn = 0;
+                markMissedPlace(coords);
+            }
+            else{
+                console.log('BOOOM');
+                markKilledShip(coords);
+                myTurn=1;
+
+            }
+        }
+        else alert ("It's not your turn");
+    };
+
+    function markKilledShip(cellId) {
+        $scope.opponentField[cellId]='shipKilledButton';
+        socket.emit('killedYou',cellId, opponentSocket);
+    }; // changes fields color
+
+    function markMissedPlace (cellId) {
+        $scope.opponentField[cellId]='missedButton';
+        socket.emit('missedYou',cellId, opponentSocket);
+    }; // changes fields color in both yor and enemy browser
 
 // some service functions
 
@@ -210,16 +248,6 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         number = String.fromCharCode(+number+64);
         return number;
     }; // transforms number to letter :)
-
-    function markKilledShip(cellId) {
-        document.getElementById(cellId).style.backgroundColor ='red';
-        socket.emit('killedYou',cellId-100, opponentSocket);
-    }; // changes fields color
-
-    function markMissedPlace (cellId) {
-        document.getElementById(cellId).style.backgroundColor ='grey';
-        socket.emit('missedYou',cellId-100, opponentSocket);
-    }; // changes fields color
 
     function showPlayersList() {
         $http.get('/playersList').then(function (response) {                  //gets data  from DB
@@ -278,55 +306,3 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
             }
         }
     }};*/
-
-
-
-
-
-
-
-
-
-
-//module.exports.userName=userName;
-
-//var messagesBox = $('#messages');
-//var userLogin = new String;
-//var controller = require ('./controller');
-//var userName = null;
-//console.log(userName);
-
-
-//  $scope.removeLast = function () {
-//       $http.delete('/playersList/'+$scope.user._id).then(function (responce) {showPlayersList();});
-//   };
-
-
-/*   $scope.submit = function submit(){
-       if ($scope.player){
-           $scope.user = $scope.player;
-        //  console.log($scope.user._id);
-           $http.post('/playersList',$scope.player).then(function (response){
-               showPlayersList();
-               $scope.user._id = response.data._id;
-               console.log($scope.user._id);
-              // saveId('$scope.user.name');
-           });
-       }
-   };*/
-
-
-/*    var my_arr = [ "2", "1", "6" ]
-    for(var i=0; i<my_arr.length; i++) {
-        alert(my_arr[i]);
-    }*/
-
-//       for(var key in clientsList){
-//           if($('#'+key).length == 0){
-//               addUserToList(clientsList[key]);
-//           }
-//       }
-
-//        $('#messages').append('<div class="uk-panel uk-panel-box uk-panel-box-warning uk-width-4-5 uk-align-left uk-margin-top-remove animated flipInX" id="info-message">Пользователь <b>'+userData.userName+'</b> покинул чат!</div>');
-//        removeUserFromList(userData);
-//        messagesBox.scrollTop(messagesBox.prop('scrollHeight'));

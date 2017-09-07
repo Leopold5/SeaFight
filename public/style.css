@@ -1,3 +1,43 @@
+.shipKilledButton {
+    background-color: red;
+    color: white;
+    width: 100%;
+    height: 100%;
+}
+.myShipButton {
+    background-color: black;
+    width: 100%;
+    height: 100%;
+}
+.emptyButton {
+    width: 100%;
+    height: 100%;
+}
+.missedButton {
+    background-color: grey;
+    width: 100%;
+    height: 100%;
+}
+
+.fieldOwnerText{
+    text-align: center;
+    font-weight: normal;
+    font-size: 18pt;
+}
+.bigLettersOntop{
+    text-align: center;
+    font-weight: bold;
+    font-size: 14pt;
+}
+.myGameFieldButton{
+    width: 100%;
+    height: 100%;
+}
+.enemyGameFieldButton{
+    width: 100%;
+    height: 100%;
+}
+
 .red {
     color: darkred;
 }
@@ -63,6 +103,7 @@
 }
 
 .uk-panel-box-success {
+    width: 100%;
     background: #f2fae3;
     color: #659f13;
     border-color: rgba(101,159,19,.3);
