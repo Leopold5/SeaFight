@@ -1,10 +1,83 @@
 var express = require('express');
 var app = express();
-var mongojs =require('mongojs');
-var db = mongojs ('playersList', ['playersList']);
 var bodyParser = require('body-parser');
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
+
+var dbType='local';  // Change this to change where to store data - can be 'mongo' or 'local'. 'file' type planned
+var connect;
+
+var connectMongo = {
+
+    addToDB: function (req) {
+        db.playersList.insert(req, function (err, docs){
+        });
+    },
+
+    findAllInDB: function (callback) {
+        db.playersList.find().toArray(callback);
+    },
+
+    updateInDB: function (id, data) {
+        db.playersList.findAndModify({
+                query: {socket: id},
+                update: {$set: {status:'ready', field: data.field}},
+                new: true}, function (err, doc) {
+            }
+        );
+    },
+
+    removeFromDB: function (socketId) {
+        db.playersList.remove({socket: socketId},  function (err, doc){
+            //          res.json(doc);
+        });
+    }
+};    // mongoDB methods
+var connectLocalStorage = {
+
+    addToDB: function (data) {
+        dataStorage.push(data);
+    },
+
+    findAllInDB: function () {
+        return dataStorage;
+    },
+
+    updateInDB: function (id,data) {
+        for (i=0; i<dataStorage.length; i++) {
+            if (dataStorage[i].socket===id){
+                dataStorage[i].field = data.field;
+                dataStorage[i].status = 'ready';
+            }
+        }
+    },
+
+    removeFromDB: function (socketId) {
+        for (i=0; i<dataStorage.length; i++) {
+            if (dataStorage[i].socket===socketId){
+                dataStorage.splice (i,1);
+            }
+        }
+    }
+};  // local data storage methods
+
+if (dbType === 'mongo'){
+    var mongojs =require('mongojs');
+    var db = mongojs ('playersList', ['playersList']);
+    db.playersList.remove({});  // clears the DB on server start to fix some bugs
+    connect = connectMongo;
+}         // sets up a server for different types of data storage
+else if (dbType === 'local'){
+    var dataStorage = [];
+    connect = connectLocalStorage;
+}
+else if (dbType === 'file'){
+    var fs = require ('fs');
+    var dbFile = 'localDB.json';
+    fs.writeFile (dbFile, '{}');
+    connect = connectLocalStorage;
+}
+
 
 server.listen(3000, 'localhost', function(){});
 
@@ -22,49 +95,44 @@ app.get('/uikit.css', function(req,res){
 app.get('/animate.css', function(req,res){
     res.sendFile(__dirname+'/node_modules/animate.css/animate.min.css');});
 
+// this block handles users connecting and disconnecting, sends appropriate events and updates db accordingly
+
 io.on('connection', function(socket){
-// this block handles users connecting and disconnecting, sends apropriate events and updates db accordingly
-    function setName(name){
-        if(name != undefined && name != ''){
-            socket.session = {};
-            socket.session.userName = name;
-
-            socket.broadcast.emit('newUser', socket.session);
-        }
-        else
-            socket.emit('setName');
+    function setSession(name){
+        socket.session = {};
+        socket.session.userName = name;
+        socket.session.socketId = socket.id;
     }
-    setName(null);
+    if (socket.name == null){
+        socket.emit('setNamePlz');
+    }
 
-    socket.on('setName', function(name){
-        if(name.length > 0){
-            db.playersList.insert({name:name, socket:socket.id}, function (err, docs){});
-            setName(name);
-        }
-        else
-            socket.emit('setName');
+    socket.on('setThisName', function(name){
+        setSession(name);
+        socket.broadcast.emit('newUserConnectedToServer');
+        socket.emit ('saveYourSessionAndStartNewGame', socket.session);
+        connect.addToDB({name:name, socket:socket.id});
     });
-
     socket.on('disconnect', function(){
         if(socket.session){
+            connect.removeFromDB(socket.session.socketId);
             io.sockets.emit('userDisconnected', socket.id);
-            db.playersList.remove({name: socket.session.userName},  function (err, doc){});
         }
     });
-
-// here are handlers for game logic events
-
-    socket.on ('playerIsReady',function(player){
-        io.sockets.emit('newPlayerIsReady');
+    socket.on ('playerIsReady',function(){
+        socket.broadcast.emit('newPlayerIsReady');
     });
+    socket.on ('connectedHim', function (initiatorName, initiatorSocket, recipientName) {
+        socket.to(recipientName).emit('someoneConnectedToYou', initiatorName, initiatorSocket);
+    });
+
+// here are handlers for gameplay events
+
     socket.on ('killedYou', function (cell,player) {
         socket.to(player).emit('killedYou', cell);
     });
     socket.on ('missedYou', function (cell,player) {
         socket.to(player).emit('missedYou', cell);
-    });
-    socket.on ('connectedYou', function (initiatorName, initiatorSocket, recipientName) {
-        socket.to(recipientName).emit('someoneConnectedToYou', initiatorName, initiatorSocket);
     });
     socket.on ('youWin', function (player) {
         socket.to(player).emit('youWon');
@@ -72,38 +140,23 @@ io.on('connection', function(socket){
 
 });
 
-//DB requests handlers
+//server requests handlers
 
 app.get ('/playersList', function (req, res) {
-    db.playersList.find(function (err, docs) {
-        res.json(docs);
-    });
-
-    console.log('I receiveg get request');
+   if (dbType==='mongo'){
+       connect.findAllInDB (function(err, items) {
+           res.send(items)
+       });
+   }
+   else if (dbType==='local'){
+       var players = connect.findAllInDB();
+       res.send(players);
+   }
 });
 
-app.post('/playersList', function (req, res){
-    db.playersList.insert(req.body, function (err, docs){
-        res.json(docs);
-    });
+app.put('/playersList', function (req, res) {
+    var id = req.body.socket;
+    data = req.body;
+    connect.updateInDB(id, data);
+    res.end();
 });
-
-app.delete('/playersList/:id', function (req, res){
-    var id = req.params.id;
-    db.playersList.remove({_id: mongojs.ObjectId(id)},  function (err, doc){
-        res.json(doc);
-    });
-});
-
-app.put('/playersList/:id', function (req, res) {
-    var id = req.params.id;
-    db.playersList.findAndModify({
-            query: {_id: mongojs.ObjectId(id)},
-            update: {$set: {playerStatus:'ready', field: req.body.field}},
-            new: true}, function (err, doc) {
-            res.json(doc);
-        }
-    );
-});
-
-db.playersList.remove({});  // clears the DB on server start to fix some bugs

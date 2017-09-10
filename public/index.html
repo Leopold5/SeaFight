@@ -10,10 +10,10 @@
 
 </head>
 <body>
-<input id="login" type="hidden" size="40" ng-model = "player.name">
+
 <div class="container" ng-controller="AppCtrl">
     <h1>Battleship v 1.0.0.1</h1>
-    <div ng-if="fieldIsVisible">
+    <div ng-if="draw.gameFields">
         <table width="100%" >
             <tbody>
             <tr><td colspan="2"><hr></td></tr>
@@ -66,22 +66,22 @@
                 </td>
             </tr>
             <tr><td colspan="2"><hr></td></tr>
-            <tr><td colspan="2"><button ng-hide= "playersListVisible" ng-click="playerReady()" class="uk-panel-box-success">Ready!</button></td></tr>
+            <tr><td colspan="2"><button ng-click="playerReady()" class="uk-panel-box-success" ng-show="draw.readyButton">Ready!</button></td></tr>
             </tbody>
         </table>
     </div>
 
-    <button class="btn btn-danger" ng-click = "startNewGame()" ng-show="!fieldIsVisible" ng-if="user">Start New Game</button>
+    <!--<button class="btn btn-danger" ng-click = "startNewGame()">Start New Game</button>-->
 
-    <div ng-if="playersListVisible" ng-hide= "gameStarted">
+    <div ng-if="draw.playersList">
         <table cellspacing="4"  style="width: 100%">
             <thead>
             <tr><th>Player</th><th>Player Status</th></tr>
             </thead>
             <tbody>
-            <tr ng-repeat= "player in playersList">
-                <td>{{player.name}}</td><td ng-class='{green : player.playerStatus, red: !player.playerStatus}'>{{player.playerStatus}}</td>
-                <td><button class="btn btn-danger" style="background-color: #6fac34" ng-click = "connect(player.socket)">Connect</button></td>
+            <tr ng-repeat= "player in playersOnline">
+                <td>{{player.name}}</td><td ng-class='{green : player.status, red: !player.status}'>{{player.status}}</td>
+                <td><button class="btn btn-danger" style="background-color: #6fac34" ng-click="connect(player.socket)" ng-if="player.status">Connect</button></td>
                 <!--  <td><button class="btn btn-danger" ng-click = "remove(player._id)">Remove from DB</button></td>-->
             </tr>
             </tbody>

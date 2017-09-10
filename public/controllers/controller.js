@@ -4,15 +4,13 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     var port = 3000;
     var server = 'localhost';
     var socket = io.connect(server + ':' + port);
+    var serverRestarted = 0; ///  used further for bugfixing
 
 // Game settings ----------------------
+
     var maxShipsNumber = 4;
-    var a=10;               //number of columns in the field
-    var b = 10;             //number of rows in the field
-// Game view  ---------------------
-    $scope.fieldIsVisible = false;
-    $scope.playersListVisible=0;
-    $scope.gameStarted=0;
+    var a=10;               //number of columns in the field (not tested hard)
+    var b = 10;             //number of rows in the field (not tested hard)
     $scope.colomnsNumberArray = [];
     for (var i = 0; i < a; i++){
         $scope.colomnsNumberArray.push(i);
@@ -21,57 +19,61 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     for (var i = 0; i < b; i++){
         $scope.rowsNumberArray.push(i);
     }
-// Game session ----------------------
-    var myPlayerId = null;
-    var myPlayerName = null;
-    var mySocket = null;
-    var opponentSocket = null;
-    var shipsPlaced = 0;
-    var myTurn = 0;
 
+// Game view  ---------------------   used to hide/show  ui elements
+
+    $scope.draw ={
+        gameFields : false,
+        playersList : false,
+        readyButton : true
+    };
+
+// Game session ----------------------
+    var player = {};
+    var opponentSocket;
+    var opponentFieldHidden = [];
+    $scope.playersOnline = [];
     $scope.myField = [];
     $scope.opponentField = [];
-    $scope.opponentFieldHidden = [];
     for (var i = 0; i < a; i++){
         for (var j = 0; j < b; j++) {
             $scope.myField[i*10 + j] = 'emptyButton';
             $scope.opponentField[i * 10 + j] = 'emptyButton';
+            opponentFieldHidden[i * 10 + j] = 'emptyButton';
         }
     }
+    var allShipsPlaced = 0;
+    var numberOfShipsPlaced = 0;
+    var gameStarted = 0;
+    var myTurn = 0;
+
 
 // event handlers------------------------------------------------
 
-    socket.on('setName', function(){
+    socket.on('setNamePlz', function(){
+        if (serverRestarted){location.reload();}   /// this refreshes page if server restarted while page opened
+        serverRestarted = 1;
+        setName();
+
         function setName(){
             UIkit.modal.prompt('Введите ваш логин:', '', function(name){
                 if(name.length>0){
-                    socket.emit('setName', name);
-                    myPlayerName = name;
-                    console.log(name+'is my name');
-                    console.log('new user added in function');
-                    showPlayersList();
-                    $scope.user = true;
+                    socket.emit('setThisName', name);
                 }
                 else{
                     setName();
                 }
             });
         }
-
-        console.log('Запрос имени...');
-        if($('#login').html().length > 0){
-            socket.emit('setName', $('#login').html());
-            console.log('new user added');
-        }
-        else{
-            setName();
-        }
-
-        console.log ('someone set a name');
     });
 
+    socket.on('saveYourSessionAndStartNewGame',function (userData) {
+        player = userData;
+        startNewGame();
+    }); // initialize a new game
+
     socket.on('userDisconnected', function(userData){
-        if (opponentSocket===userData){
+        if (opponentSocket===userData){                            // if it was your current opponent, who left, it may cause some bugs.
             alert('Your opponent flied the battle');
             location.reload();
         }
@@ -81,22 +83,21 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         }
     });
 
-    socket.on('newUser', function(clientsList){
+    socket.on('newUserConnectedToServer', function(){
         console.log('New user in  da haus');
         showPlayersList();
     });
 
     socket.on('newPlayerIsReady', function() {
-        console.log ('server said: new player is ready');
         showPlayersList();
     });
 
     socket.on('killedYou', function(cellId) {
-        console.log ('Someone killed me');
         $scope.myField[cellId]='shipKilledButton';
         document.getElementById(cellId).innerText ='X';
-        if (--shipsPlaced>0){
-            console.log('Still more than 0 - ',shipsPlaced);
+        refresh();                                         // i had a bug, angular not refreshing as intended. so that trick fixed it
+        if (--numberOfShipsPlaced>0){
+                                                //was going to add some action here
         }
         else {
             socket.emit('youWin', opponentSocket);
@@ -106,82 +107,46 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     });
 
     socket.on('missedYou', function(cellId) {
-        console.log ('Someone missed me');
         $scope.myField[cellId]='missedButton';
         document.getElementById(cellId).innerText ='X';
         myTurn = 1;
+        refresh();
     });
 
-    socket.on('someoneConnectedToYou', function(hisName, hisSocket) {
-        console.log ('Someone connected me');
+    socket.on('someoneConnectedToYou', function(hisName, hisSocket) {           //initialises a new game
         alert (hisName+' connected to you on socket '+hisSocket);
         opponentSocket = hisSocket;
-        console.log(opponentSocket);
-        $scope.gameStarted=1;
+        $scope.draw.playersList=false;
+        gameStarted = true;
         myTurn=0;
-        console.log(myTurn);
-        $http.get('/playersList').then(function (response) {
-            dbdata = response.data;
+        $http.get('/playersList').then(function (response) {            // when someone connected to u,
+            dbdata = response.data;                                      // it gets your opponent field data and saves it
             dbdata.forEach(function(item, i, arr) {
-                if (item.socket === opponentSocket) $scope.opponentFieldHidden = item.field;
+                if (item.socket === opponentSocket) opponentFieldHidden = item.field;
             })
         });
     });
 
     socket.on('youWon', function() {
-        console.log ('i Won');
         alert('YOU ARE THE WINNER!!! Hurraaaaaaay!!!');
         location.reload();
     });
 
 //HTML Buttons functions --------------------------
 
-    $scope.startNewGame = function(){
-        allShipsPlaced = 0;
-        shipsNumber = 0;
-        $scope.fieldIsVisible = true;
-        $scope.gameStarted = false;
-    }; //when startNewGame button is pressed
-
     $scope.playerReady = function(){
-        if (shipsPlaced===maxShipsNumber){
-            allShipsPlaced = true;
-            reqData = {field:$scope.myField};
-            $http.put('/playersList/' + myPlayerId, reqData); // send your field data to db
-            $scope.playersListVisible = true;
+        if (numberOfShipsPlaced===maxShipsNumber){
+            allShipsPlaced = 1;
+            reqData = {socket: player.socketId, field:$scope.myField, status: 'ready'};
+            $http.put('/playersList', reqData).then (showPlayersList()); // send your field data to db
+            $scope.draw.readyButton = false;
+            $scope.draw.playersList = true;
             socket.emit('playerIsReady');
-            showPlayersList();
         }
         else {
             alert ('Place all the ships, plz');
         }
-
     }; //when player ready button is pressed
-
-    $scope.connect = function (id) {
-        if (id!==mySocket){
-            opponentSocket = id;
-            $scope.gameStarted=1;
-            myTurn=1;
-            $http.get('/playersList').then(function (response) {
-                dbdata = response.data;
-                dbdata.forEach(function(item, i, arr) {
-                    if (item.socket === opponentSocket) {$scope.opponentFieldHidden = item.field;
-               //         opponent = item;
-                    }
-                    console.log($scope.opponentFieldHidden);
-                })
-            });
-            socket.emit('connectedYou',myPlayerName, mySocket, opponentSocket);
-        }
-        else{
-            alert('Can not connect to yourself');
-        }
-    }; //when connect button is pressed
-
-    $scope.remove = function (id) {
-        $http.delete('/playersList/'+id).then(function (responce) {showPlayersList();});
-    }; //when remove button is pressed - this button was used for tests purposes, it's commented in index.html
 
     $scope.onButtonPress = function (coords, fieldOwner) {
         if (fieldOwner==='my' && !allShipsPlaced){                               // when placing your ships
@@ -190,21 +155,43 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         else if (fieldOwner==='my' && allShipsPlaced){
             alert ('Ships are placed');
         }
-        else if (fieldOwner==='enemy' && $scope.gameStarted){                           // when game started and u press opponent field
-           shootHere(coords);
+        else if (fieldOwner==='enemy' && gameStarted){                           // when game started and u press opponent field
+            shootHere(coords);
         }
-        else if (fieldOwner==='enemy' && !$scope.gameStarted){
+        else if (fieldOwner==='enemy' && !gameStarted){
             alert ('Opponent not ready');
         }
-    }; //when one of the game fields buttons is pressed
+    }; ///when one of the game fields buttons is pressed
+
+    $scope.connect = function (id) {
+        if (id!==player.socketId){          //do not connect to yourself
+            opponentSocket = id;
+            $scope.draw.readyButton=0;
+            myTurn=true;
+            $http.get('/playersList').then(function (response) {
+                dbdata = response.data;
+                dbdata.forEach(function(item, i, arr) {
+                    if (item.socket === opponentSocket) {
+                        opponentFieldHidden = item.field;
+                    }
+                })
+            });
+            socket.emit('connectedHim',player.name, player.socketId, opponentSocket);
+            $scope.draw.playersList=false;
+            gameStarted = true;
+        }
+        else{
+            alert('Can not connect to yourself');
+        }
+    }; //when connect button is pressed
 
 // Game logic functions----------------------
 
     function placeNewShip(coords) {
-        if (shipsPlaced<maxShipsNumber){
-            if ($scope.myField[coords]==='emptyButton'){
+        if (numberOfShipsPlaced<maxShipsNumber){
+            if ($scope.myField[coords]!=='myShipButton'){
                 $scope.myField[coords]= 'myShipButton';
-                shipsPlaced++;
+                numberOfShipsPlaced++;
             }
             else {
                 alert ('a-a-aaaa!!!!');
@@ -214,10 +201,9 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
             alert ('All ships placed');
         }
     };
-
     function shootHere (coords){
         if(myTurn){
-            if ($scope.opponentFieldHidden[coords]==='emptyButton'){
+            if (opponentFieldHidden[coords]==='emptyButton'){
                 console.log('missed');
                 myTurn = 0;
                 markMissedPlace(coords);
@@ -231,12 +217,10 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         }
         else alert ("It's not your turn");
     };
-
     function markKilledShip(cellId) {
         $scope.opponentField[cellId]='shipKilledButton';
         socket.emit('killedYou',cellId, opponentSocket);
-    }; // changes fields color
-
+    }; // changes fields color in both yor and enemy browser
     function markMissedPlace (cellId) {
         $scope.opponentField[cellId]='missedButton';
         socket.emit('missedYou',cellId, opponentSocket);
@@ -244,65 +228,29 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
 
 // some service functions
 
+    function showPlayersList() {
+        $http.get('/playersList').then(function (response) {
+            $scope.playersOnline = response.data;
+            console.log($scope.playersOnline);
+        });
+    }       //refreshes playerlist field when called
+    function startNewGame (){
+        $scope.draw.gameFields = true;
+        showPlayersList ();
+        refresh();
+    };
+    function refresh (){
+        $http.get('');
+    };
     $scope.numberToLetter = function (number) {
         number = String.fromCharCode(+number+64);
         return number;
     }; // transforms number to letter :)
-
-    function showPlayersList() {
-        $http.get('/playersList').then(function (response) {                  //gets data  from DB
-            $scope.playersList = response.data;                           //and refreshes the html players table with it
-            if (myPlayerId === null) {                      // saves players info on enter
-               $scope.playersList.forEach(function(item, i, arr) {
-                   if (item.name === myPlayerName){
-                       myPlayerId=item._id;
-                       mySocket=item.socket;
-                   }
-               });
-          }
-        });
-    }; // generates players table and used for refreshing it
+    $scope.remove = function (id) {
+        $http.delete('/playersList/'+id).then(function (responce) {showPlayersList();});
+    }; //when remove button is pressed - this button was used for tests purposes, it's commented in index.html
 
 }]);
 
-// some table generator i was going to use :)
 
-/*     $scope.createTable = function(targetPlaceId){if(!flag){
-        var htmlTable = document.getElementById(targetPlaceId);
-        var rowNomber=0;
-        var columnNumber=0;
-        var tr = [];
-        var td = [];
-        flag=1;
-        for(rowNomber=0; rowNomber < 11; rowNomber += 1) {
-            tr[rowNomber] = document.createElement('tr');
-            htmlTable.appendChild(tr[rowNomber]);
-            for(columnNumber=0; columnNumber < 11; columnNumber += 1) {
-                td[columnNumber] = document.createElement('td');
-                tr[rowNomber].appendChild(td[columnNumber]);
-                td[columnNumber].width = 30;
-                td[columnNumber].height = 30;
 
-                if (rowNomber===0 && columnNumber===0){
-                    td[columnNumber].innerHTML = '&nbsp';
-                    td[columnNumber].style = "text-align: center; font-weight: bold; font-size: 14pt;";
-                }
-                else if (rowNomber===0){
-                    td[columnNumber].innerHTML = String.fromCharCode(columnNumber+64);
-                    td[columnNumber].style = "text-align: center; font-weight: bold; font-size: 14pt;";
-                }
-                else if (columnNumber===0){
-                    td[columnNumber].innerHTML = rowNomber;
-                    td[columnNumber].style = "text-align: center; font-weight: bold; font-size: 14pt;";
-                }
-                else{
-                    var button = document.createElement('button');
-                    td[columnNumber].appendChild(button);
-                    button.id = rowNomber*10+columnNumber;
- //                   button.addEventListener('click', onButtonPress);
-                    button.style = "width: 100%; height: 100%;";
-                    button.innerHTML ='&nbsp';
-                }
-            }
-        }
-    }};*/

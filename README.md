@@ -12,3 +12,11 @@ To run:
 7.enjoy
 
 
+---------------------ChangeLog---------------------
+---11.09.2017---
+1. reworked all the application, so that now it can be swiched between mongoDB
+and local storage by changing one variable (in case we don't want mongo in our project)
+Or we can easily use any other db by adding some specific requests code without reworking all the app.
+2. better code organization in general. Some little tweaks.
+3. minor bugs fixed like angular ng-style not refreshing correctly
+4. better git organization
