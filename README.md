@@ -20,3 +20,11 @@ Or we can easily use any other db by adding some specific requests code without 
 2. better code organization in general. Some little tweaks.
 3. minor bugs fixed like angular ng-style not refreshing correctly
 4. better git organization
+---17.09.2017---
+0. Deployed to the web. Now one can try the Battleship app on https://seafight-rsxskwatin.now.sh
+1. Added a lot of game logic, so now u need to place all the ships, not only the simple ones.
+Also it checks for ships to be placed properly and for a player trying to get more ships than allowed.
+Tons of code here.
+2. Added some animation to all cell changes.
+3. Added some animation, so now you know when it is your turn.
+4. Little UI tweaks.

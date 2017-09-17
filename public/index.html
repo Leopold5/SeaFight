@@ -12,6 +12,7 @@
 <body>
 
 <div class="container" ng-controller="AppCtrl">
+    <h6>&nbsp;</h6>
     <h1>Battleship v 1.0.0.1</h1>
     <div ng-if="draw.gameFields">
         <table width="100%" >
@@ -19,9 +20,9 @@
             <tr><td colspan="2"><hr></td></tr>
             <tr>
                 <td>
-                    <table>
+                    <table class="fieldTable">
                         <tr><td class="fieldOwnerText">Your Field</td></tr>
-                        <tr><td>
+                        <tr><td >
                             <table id="myField">
                                 <tbody>
                                 <tr>
@@ -42,10 +43,10 @@
                     </table>
                 </td>
                 <td>
-                    <table>
+                    <table class="fieldTable">
                         <tr><td class="fieldOwnerText">Opponent Field</td></tr>
                         <tr><td>
-                            <table id="enemyField">
+                            <table id="enemyField" ng-class='{activeElement : myTurn, inactiveElement: !myTurn}'>
                                 <tbody>
                                 <tr>
                                     <td>&nbsp;</td>

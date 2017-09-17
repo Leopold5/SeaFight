@@ -7,6 +7,7 @@ var io = require('socket.io')(server);
 var dbType='local';  // Change this to change where to store data - can be 'mongo' or 'local'. 'file' type planned
 var connect;
 
+
 var connectMongo = {
 
     addToDB: function (req) {
@@ -79,11 +80,13 @@ else if (dbType === 'file'){
 }
 
 
-server.listen(3000, 'localhost', function(){});
+server.listen(4000, function(){});
 
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
 
+app.get('/', function(req, res){
+    res.sendFile(__dirname + '/index.html')});
 app.get('/socket.io.js', function(req,res){
     res.sendFile(__dirname+'/node_modules/socket.io-client/dist/socket.io.js');});
 app.get('/jquery.js', function(req,res){
