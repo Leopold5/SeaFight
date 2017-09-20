@@ -5,6 +5,26 @@
     border-width: thick;
     border: 1px solid red;
 }*/
+.pageGeneral {
+    background-image: url(./bg.jpg);
+}
+.generalHeader{
+    width: 100%;
+    height: 100px;
+    color: #EAEAEA;
+    background-color: #172633;
+
+    font-size: 40px;
+    text-align: center;
+    vertical-align: center;
+    margin-left: 0px;
+    font-family: Stencil;
+    border: 0 !important;
+    -moz-box-shadow: 0 9px 0 rgba(0,0,0,.2) !important;
+    -webkit-box-shadow: 0 1px 0 rgba(0,0,0,.2) !important;
+    box-shadow: 0 1px 0 rgba(0,0,0,.2) !important;
+    background-image: none !important;
+}
 .fieldTable{
     margin: 0 auto;
 }

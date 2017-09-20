@@ -28,3 +28,8 @@ Tons of code here.
 2. Added some animation to all cell changes.
 3. Added some animation, so now you know when it is your turn.
 4. Little UI tweaks.
+---20.09.2017---
+0.https://seafight-bavcybtylj.now.sh
+1. Added auto-marking of killed ships
+2. Improved code organization
+3. Started work on design

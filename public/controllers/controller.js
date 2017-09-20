@@ -50,8 +50,6 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     var numberOfShipsPlaced = 0;
     var gameStarted = 0;
     $scope.myTurn = false;
-  //  var shipPlacementSterted = 0;
-  //  var shipLength = 0;
 
 // event handlers------------------------------------------------
 
@@ -99,10 +97,12 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
 
     socket.on('killedYou', function(cellId) {
         $scope.myField[cellId]='shipKilledButton';
-        document.getElementById(cellId).innerText ='X';
+  //      document.getElementById(cellId).innerText ='X';
         refresh();                                         // i had a bug, angular not refreshing as intended. so that trick fixed it
         if (--numberOfShipsPlaced>0){
-                                                //was going to add some action here
+            if (getShipAsArray(cellId, $scope.myField).length===countKilledLength(cellId, $scope.myField)){
+                markMissesIfShipIsKilled(cellId, $scope.myField);
+            }
         }
         else {
             socket.emit('youWin', opponentSocket);
@@ -113,7 +113,7 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
 
     socket.on('missedYou', function(cellId) {
         $scope.myField[cellId]='missedButton';
-        document.getElementById(cellId).innerText ='X';
+ //       document.getElementById(cellId).innerText ='X';
         $scope.myTurn = true;
         refresh();
     });
@@ -240,81 +240,82 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         else
         {return false}
     }
-    function countShipLength (coords)  {
+
+    function countKilledLength (coords, field)  {
+        var killedShipArray = getShipAsArray(coords, field);
+        return killedShipArray.length;
+    }
+    function getShipAsArray (coords, field){
         var i = 1;
         var j = 1;
         var k = 1;
         var l = 1;
-        var shipLength = 1;
+        var shipCoordsArray = [coords];
+
         if (Math.floor(coords/10)===coords/10) {     // if left side of the field
-            console.log('count on left side');
-            while ($scope.myField[coords + j] === 'myShipButton') {
+//            console.log('count on left side');
+            while (field[coords + j] === 'myShipButton' || field[coords + j] === 'shipKilledButton') {
+                shipCoordsArray.push(coords + j);
                 j++;
-                shipLength++;
             }
-            while ($scope.myField[coords - 10*k] === 'myShipButton') {
+            while (field[coords - 10*k] === 'myShipButton' || field[coords - 10*k] === 'shipKilledButton') {
+                shipCoordsArray.push(coords - 10*k);
                 k++;
-                shipLength++;
             }
-            while ($scope.myField[coords + 10*l] === 'myShipButton') {
+            while (field[coords + 10*l] === 'myShipButton' || field[coords + 10*l] === 'shipKilledButton') {
+                shipCoordsArray.push(coords + 10*l);
                 l++;
-                shipLength++;
             }
         }
         else if (Math.floor((coords+1)/10)===(coords+1)/10) {    // right side of the field
-            console.log('count on right side');
-            while ($scope.myField[coords - i] === 'myShipButton') {
+//            console.log('count on right side');
+            while (field[coords - i] === 'myShipButton' || field[coords - i] === 'shipKilledButton') {
+                shipCoordsArray.push(coords - i);
                 i++;
-                shipLength++;
             }
-            while ($scope.myField[coords - 10*k] === 'myShipButton') {
+            while (field[coords - 10*k] === 'myShipButton' || field[coords - 10*k] === 'shipKilledButton') {
+                shipCoordsArray.push(coords - 10*k);
                 k++;
-                shipLength++;
             }
-            while ($scope.myField[coords + 10*l] === 'myShipButton') {
+            while (field[coords + 10*l] === 'myShipButton' || field[coords + 10*l] === 'shipKilledButton') {
+                shipCoordsArray.push(coords + 10*l);
                 l++;
-                shipLength++;
             }
         }
         else {
-            console.log('count on middle');
+//            console.log('count on middle');
             var leftSideReached=0;
             var rightSideReached=0;
-            while ($scope.myField[coords - i] === 'myShipButton' && leftSideReached===0) {
+            while ((field[coords - i] === 'myShipButton' || field[coords - i] === 'shipKilledButton') && leftSideReached===0) {
                 if (Math.floor((coords-i)/10)===(coords-i)/10){leftSideReached=1; console.log('leftSideReached');}
+                shipCoordsArray.push(coords - i);
                 i++;
-                shipLength++;
             }
-            while ($scope.myField[coords + j] === 'myShipButton' && rightSideReached===0) {
+            while ((field[coords + j] === 'myShipButton' || field[coords + j] === 'shipKilledButton') && rightSideReached===0) {
                 if (Math.floor((coords+1+j)/10)===(coords+1+j)/10){rightSideReached=1; console.log('rightSideReached');}
+                shipCoordsArray.push(coords + j);
                 j++;
-                shipLength++;
             }
-            while ($scope.myField[coords - 10*k] === 'myShipButton') {
+            while (field[coords - 10*k] === 'myShipButton' || field[coords - 10*k] === 'shipKilledButton') {
+                shipCoordsArray.push(coords - 10*k);
                 k++;
-                shipLength++;
             }
-            while ($scope.myField[coords + 10*l] === 'myShipButton') {
+            while (field[coords + 10*l] === 'myShipButton' || field[coords + 10*l] === 'shipKilledButton') {
+                shipCoordsArray.push(coords + 10*l);
                 l++;
-                shipLength++;
             }
         }
-        return shipLength;
+        return shipCoordsArray;
     }
-    function placeShipHere (coords){
-            $scope.myField[coords] = 'myShipButton';
-            numberOfShipsPlaced++;
-    }  // changes fields cell
 
     function placeNewShip(coords) {
         if (numberOfShipsPlaced < maxShipsNumber) {
             if (noOtherShipsAtAngles(coords)){
                 if (!sipIsPlacedBetweenShips(coords)){
-                    //   shipLength = countShipLength(coords);
-                    console.log('------------------------------------------------Shiplength is', countShipLength(coords));
-                    switch (countShipLength(coords)){
+  //                  console.log('------------------------------------------------Shiplength is', countShipLength(coords, $scope.myField));
+                    switch (getShipAsArray(coords, $scope.myField).length){
                         case 1:
-                            console.log('case 1!');
+   //                         console.log('case 1!');
                             if (_1DS===-1) {
                                 alert('Finish previous 1ds ship');
                                 break;
@@ -328,22 +329,22 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
                                 break;
                             }
                             else if (_1DS>0){
-                                placeShipHere (coords);
+                                markNewShipCell (coords);
                                 _1DS--;
-                                console.log('putting 1ds',_1DS, ' left');
+//                                console.log('putting 1ds',_1DS, ' left');
                                 break;
                             }
                             else if (_1DS===0){
-                                console.log(_2DS,_3DS,_4DS);
+//                                console.log(_2DS,_3DS,_4DS);
                                 if (_2DS>0||_3DS>0||_4DS>0){
-                                    placeShipHere (coords);
+                                    markNewShipCell (coords);
                                     _1DS--;
-                                    console.log('putting 1ds',_1DS, ' left');
+//                                    console.log('putting 1ds',_1DS, ' left');
                                     break;
                                 }
                             }
                         case 2:
-                            console.log('case 2!');
+     //                       console.log('case 2!');
                             if (_2DS===-1) {
                                 alert('Finish previous 2ds ship');
                                 break;
@@ -355,16 +356,16 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
                             else if (_2DS>0) {
                                 _1DS++;
                                 _2DS--;
-                                placeShipHere(coords);
+                                markNewShipCell(coords);
                                 break;
                             } else if (_2DS===0 && (_3DS>0 || _4DS>0)){
                                 _1DS++;
                                 _2DS--;
-                                placeShipHere(coords);
+                                markNewShipCell(coords);
                                 break;
                             }
                         case 3:
-                            console.log('case 3!');
+   //                         console.log('case 3!');
                             if (_3DS===-1){
                                 alert('Finish previous 3ds ship');
                                 break;
@@ -372,23 +373,23 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
                             else if (_3DS>0){
                                 _2DS++;
                                 _3DS--;
-                                placeShipHere(coords);
+                                markNewShipCell(coords);
                                 break;
                             }else if (_3DS===0 && _4DS) {
                                 _3DS--;
                                 _2DS++;
-                                placeShipHere(coords);
+                                markNewShipCell(coords);
                                 break;
                             }else if (_3DS===0 && !_4DS){
                                 alert('Only smaller ships left');
                                 break;
                             }
                         case 4:                                             //either u make it of 3deck ship or make it from 1deck
-                            console.log('case 4!');
+   //                         console.log('case 4!');
                             if (_4DS>0) {                     // above others
                                 _4DS--;
                                 _3DS++;
-                                placeShipHere(coords);
+                                markNewShipCell(coords);
                                 break;
                             }
                             else if (_4DS===0){
@@ -401,143 +402,96 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
         }else{alert('All ships placed');}
     }  // contains all ship placement logic
     function removeShip(coords) {
-        switch (countShipLength(coords)){
-            case 1:
-                _1DS++;
-                numberOfShipsPlaced -=1;
-                console.log('adding 1ds');
-                break;
-            case 2:
-                _2DS++;
-                numberOfShipsPlaced -=2;
-                console.log('adding 2ds');
-                break;
-            case 3:
-                _3DS++;
-                numberOfShipsPlaced -=3;
-                console.log('adding 3ds');
-                break;
-            case 4:
-                _4DS++;
-                numberOfShipsPlaced -=4;
-                console.log('adding 4ds');
-                break;
-        }
+        if (!gameStarted){
+            switch (getShipAsArray(coords, $scope.myField).length){
+                case 1:
+                    _1DS++;
+                     break;
+                case 2:
+                    _2DS++;
+                    break;
+                case 3:
+                    _3DS++;
+                    break;
+                case 4:
+                    _4DS++;
+                    break;
+            }
+            var toBeRemovedShipArray = getShipAsArray(coords, $scope.myField);
+            for (i=0; i<toBeRemovedShipArray.length; i++){
+                markEmptyCell(toBeRemovedShipArray[i]);
+            }
 
-        var i = 1;
-        var j = 1;
-        var k = 1;
-        var l = 1;
-
-        var firstRun = 1;
-
-        if (Math.floor(coords/10)===coords/10) {     // if button is pressed on the left side of the field
-            console.log('removing on left side');
-            if ($scope.myField[coords+1]!=='myShipButton'&&
-                $scope.myField[coords-10]!=='myShipButton'&&
-                $scope.myField[coords+10]!=='myShipButton')
-            {$scope.myField[coords] = 'emptyButton';}
-
-            while ($scope.myField[coords + j] === 'myShipButton') {  //removing to the right
-                $scope.myField[coords + j] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                j++;
-            }
-            while ($scope.myField[coords - 10*k] === 'myShipButton') { //removing to the top
-                console.log('removing on left side to the top');
-                $scope.myField[coords - 10*k] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                k++;
-            }
-            while ($scope.myField[coords + 10*l] === 'myShipButton') {  //removing to the bottom
-                console.log('removing on left side to the bottom');
-                $scope.myField[coords + 10*l] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                l++;
-            }
-        }
-        else if (Math.floor((coords+1)/10)===(coords+1)/10) {    // if button is pressed on the right side of the field
-            console.log('removing on right side');
-            if ($scope.myField[coords-1]!=='myShipButton'&&
-                $scope.myField[coords-10]!=='myShipButton'&&
-                $scope.myField[coords+10]!=='myShipButton')
-            {$scope.myField[coords] = 'emptyButton';}
-
-            while ($scope.myField[coords - i] === 'myShipButton') {  //removing to the left
-                $scope.myField[coords - i] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                i++;
-            }
-            while ($scope.myField[coords - 10*k] === 'myShipButton') { //removing to the bottom
-                $scope.myField[coords - 10*k] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                k++;
-            }
-            while ($scope.myField[coords + 10*l] === 'myShipButton') { //removing to the top
-                $scope.myField[coords + 10*l] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                l++;
-            }
-        }
-        else {
-            console.log('removing on middle');
-            if ($scope.myField[coords-1]!=='myShipButton'&&
-                $scope.myField[coords+1]!=='myShipButton'&&
-                $scope.myField[coords-10]!=='myShipButton'&&
-                $scope.myField[coords+10]!=='myShipButton')
-            {$scope.myField[coords] = 'emptyButton';}
-
-            var leftSideReached=0;
-            var rightSideReached=0;
-            while ($scope.myField[coords - i] === 'myShipButton' && leftSideReached===0) {
-                if (Math.floor((coords-i)/10)===(coords-i)/10){leftSideReached=1; console.log('leftSideReached');}
-                $scope.myField[coords - i] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                i++;
-            }
-            while ($scope.myField[coords + j] === 'myShipButton' && rightSideReached===0) {
-                if (Math.floor((coords+1+j)/10)===(coords+1+j)/10){rightSideReached=1; console.log('rightSideReached');}
-                $scope.myField[coords + j] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                j++;
-            }
-            while ($scope.myField[coords - 10*k] === 'myShipButton') {
-                $scope.myField[coords - 10*k] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                k++;
-            }
-            while ($scope.myField[coords + 10*l] === 'myShipButton') {
-                $scope.myField[coords + 10*l] = 'emptyButton';
-                if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
-                l++;
-            }
         }
     }   // contains all ship removing logic
-
     function shootHere (coords){
         if($scope.myTurn){
             if (opponentFieldHidden[coords]==='emptyButton'){
-                console.log('missed');
                 $scope.myTurn = false;
                 markMissedPlace(coords);
             }
             else{
-                console.log('BOOOM');
-                markKilledShip(coords);
+//                console.log('BOOOM');
+                markShipHit(coords);
                 $scope.myTurn=true;
-
+                if (getShipAsArray(coords, opponentFieldHidden).length===countKilledLength(coords, $scope.opponentField)){
+//                    console.log('ship killed');
+                    markMissesIfShipIsKilled(coords, $scope.opponentField);
+                }
             }
         }
         else alert ("It's not your turn");
-    };
-    function markKilledShip(cellId) {
-        $scope.opponentField[cellId]='shipKilledButton';
-        socket.emit('killedYou',cellId, opponentSocket);
-    }; // changes fields color in both yor and enemy browser
-    function markMissedPlace (cellId) {
-        $scope.opponentField[cellId]='missedButton';
-        socket.emit('missedYou',cellId, opponentSocket);
-    }; // changes fields color in both yor and enemy browser
+    }
+
+    function markMissesAllAroundSingleShipCell (coords, field){
+        if (Math.floor(coords/10)===coords/10){     //on the left side of the field
+            if (field[coords+1]!=='shipKilledButton')field[coords+1] = 'missedButton';
+            if (field[coords+10]!=='shipKilledButton')field[coords+10] = 'missedButton';
+            if (field[coords-10]!=='shipKilledButton')field[coords-10] = 'missedButton';
+            field[coords-9] = 'missedButton';
+            field[coords+11] = 'missedButton';
+        }
+        else if (Math.floor((coords+1)/10)===(coords+1)/10){        ////on the right side of the field
+            if (field[coords-1]!=='shipKilledButton')field[coords-1] = 'missedButton';
+            if (field[coords+10]!=='shipKilledButton')field[coords+10] = 'missedButton';
+            if (field[coords-10]!=='shipKilledButton')field[coords-10] = 'missedButton';
+            field[coords+9] = 'missedButton';
+            field[coords-11] = 'missedButton';
+        }
+        else {
+            if (field[coords+1]!=='shipKilledButton')field[coords+1] = 'missedButton';
+            if (field[coords-1]!=='shipKilledButton')field[coords-1] = 'missedButton';
+            if (field[coords+10]!=='shipKilledButton')field[coords+10] = 'missedButton';
+            if (field[coords-10]!=='shipKilledButton')field[coords-10] = 'missedButton';
+            field[coords+9] = 'missedButton';
+            field[coords-9] = 'missedButton';
+            field[coords+11] = 'missedButton';
+            field[coords-11] = 'missedButton';
+        }
+    }
+    function markMissesIfShipIsKilled(coords, field){
+        var killedShipArray = getShipAsArray(coords, field);
+//        console.log('killed ship array:',killedShipArray);
+        for (i=0; i<killedShipArray.length; i++){
+            markMissesAllAroundSingleShipCell(killedShipArray[i],field);
+        }
+    }
+    function markShipHit(coords) {
+        $scope.opponentField[coords]='shipKilledButton';
+        socket.emit('killedYou',coords, opponentSocket);
+    } // changes cell color in both your and enemy browser
+    function markMissedPlace (coords) {
+        $scope.opponentField[coords]='missedButton';
+        socket.emit('missedYou',coords, opponentSocket);
+    } // changes fields color in both yor and enemy browser
+    function markNewShipCell (coords){
+        $scope.myField[coords] = 'myShipButton';
+        numberOfShipsPlaced++;
+    }  // changes fields cell to ship
+    function markEmptyCell (coords){
+        $scope.myField[coords] = 'emptyButton';
+        numberOfShipsPlaced--;
+    }  // changes fields cell to empty
 
 // some service functions
 
@@ -562,13 +516,248 @@ myApp.controller('AppCtrl', ['$scope', '$http', function($scope, $http) {
     $scope.remove = function (id) {
         $http.delete('/playersList/'+id).then(function (responce) {showPlayersList();});
     }; //when remove button is pressed - this button was used for tests purposes, it's commented in index.html
-    $scope.determineMyTableBorderColor = function (){
-        var tableClass = 'redBorder';
-        if (numberOfShipsPlaced===maxShipsNumber) {
-            tableClass = 'greenBorder';
+
+
+    /*    function countKilledLength (coords)  {
+        var i = 1;
+        var j = 1;
+        var k = 1;
+        var l = 1;
+        var killedLength = 1;
+        if (Math.floor(coords/10)===coords/10) {     // if left side of the field
+            console.log('count killed on left side');
+            while ($scope.opponentField[coords + j] === 'shipKilledButton') {
+                j++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords - 10*k] === 'shipKilledButton') {
+                k++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords + 10*l] === 'shipKilledButton') {
+                l++;
+                killedLength++;
+            }
         }
-        return tableClass;
-    }
+        else if (Math.floor((coords+1)/10)===(coords+1)/10) {    // right side of the field
+            console.log('count killed on right side');
+            while ($scope.opponentField[coords - i] === 'shipKilledButton') {
+                i++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords - 10*k] === 'shipKilledButton') {
+                k++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords + 10*l] === 'shipKilledButton') {
+                l++;
+                killedLength++;
+            }
+        }
+        else {
+            console.log('count killed on middle');
+            var leftSideReached=0;
+            var rightSideReached=0;
+            while ($scope.opponentField[coords - i] === 'shipKilledButton' && leftSideReached===0) {
+                if (Math.floor((coords-i)/10)===(coords-i)/10){leftSideReached=1; console.log('leftSideReached');}
+                i++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords + j] === 'shipKilledButton' && rightSideReached===0) {
+                if (Math.floor((coords+1+j)/10)===(coords+1+j)/10){rightSideReached=1; console.log('rightSideReached');}
+                j++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords - 10*k] === 'shipKilledButton') {
+                k++;
+                killedLength++;
+            }
+            while ($scope.opponentField[coords + 10*l] === 'shipKilledButton') {
+                l++;
+                killedLength++;
+            }
+        }
+        console.log('Killed ship length is: ',killedLength)
+        return killedLength;
+    }*/  //count killed length function backup
+    /*    function removeShip(coords) {
+        if (!gameStarted){
+            switch (countShipLength(coords, $scope.myField)){
+                case 1:
+                    _1DS++;
+                    numberOfShipsPlaced -=1;
+                    console.log('adding 1ds');
+                    break;
+                case 2:
+                    _2DS++;
+                    numberOfShipsPlaced -=2;
+                    console.log('adding 2ds');
+                    break;
+                case 3:
+                    _3DS++;
+                    numberOfShipsPlaced -=3;
+                    console.log('adding 3ds');
+                    break;
+                case 4:
+                    _4DS++;
+                    numberOfShipsPlaced -=4;
+                    console.log('adding 4ds');
+                    break;
+            }
+
+            var i = 1;
+            var j = 1;
+            var k = 1;
+            var l = 1;
+
+            var firstRun = 1;
+
+            if (Math.floor(coords/10)===coords/10) {     // if button is pressed on the left side of the field
+                console.log('removing on left side');
+                if ($scope.myField[coords+1]!=='myShipButton'&&
+                    $scope.myField[coords-10]!=='myShipButton'&&
+                    $scope.myField[coords+10]!=='myShipButton')
+                {$scope.myField[coords] = 'emptyButton';}
+
+                while ($scope.myField[coords + j] === 'myShipButton') {  //removing to the right
+                    $scope.myField[coords + j] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    j++;
+                }
+                while ($scope.myField[coords - 10*k] === 'myShipButton') { //removing to the top
+                    console.log('removing on left side to the top');
+                    $scope.myField[coords - 10*k] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    k++;
+                }
+                while ($scope.myField[coords + 10*l] === 'myShipButton') {  //removing to the bottom
+                    console.log('removing on left side to the bottom');
+                    $scope.myField[coords + 10*l] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    l++;
+                }
+            }
+            else if (Math.floor((coords+1)/10)===(coords+1)/10) {    // if button is pressed on the right side of the field
+                console.log('removing on right side');
+                if ($scope.myField[coords-1]!=='myShipButton'&&
+                    $scope.myField[coords-10]!=='myShipButton'&&
+                    $scope.myField[coords+10]!=='myShipButton')
+                {$scope.myField[coords] = 'emptyButton';}
+
+                while ($scope.myField[coords - i] === 'myShipButton') {  //removing to the left
+                    $scope.myField[coords - i] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    i++;
+                }
+                while ($scope.myField[coords - 10*k] === 'myShipButton') { //removing to the bottom
+                    $scope.myField[coords - 10*k] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    k++;
+                }
+                while ($scope.myField[coords + 10*l] === 'myShipButton') { //removing to the top
+                    $scope.myField[coords + 10*l] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    l++;
+                }
+            }
+            else {
+                console.log('removing on middle');
+                if ($scope.myField[coords-1]!=='myShipButton'&&
+                    $scope.myField[coords+1]!=='myShipButton'&&
+                    $scope.myField[coords-10]!=='myShipButton'&&
+                    $scope.myField[coords+10]!=='myShipButton')
+                {$scope.myField[coords] = 'emptyButton';}
+
+                var leftSideReached=0;
+                var rightSideReached=0;
+                while ($scope.myField[coords - i] === 'myShipButton' && leftSideReached===0) {
+                    if (Math.floor((coords-i)/10)===(coords-i)/10){leftSideReached=1; console.log('leftSideReached');}
+                    $scope.myField[coords - i] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    i++;
+                }
+                while ($scope.myField[coords + j] === 'myShipButton' && rightSideReached===0) {
+                    if (Math.floor((coords+1+j)/10)===(coords+1+j)/10){rightSideReached=1; console.log('rightSideReached');}
+                    $scope.myField[coords + j] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    j++;
+                }
+                while ($scope.myField[coords - 10*k] === 'myShipButton') {
+                    $scope.myField[coords - 10*k] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    k++;
+                }
+                while ($scope.myField[coords + 10*l] === 'myShipButton') {
+                    $scope.myField[coords + 10*l] = 'emptyButton';
+                    if (firstRun){$scope.myField[coords] = 'emptyButton'; firstRun = 0;}
+                    l++;
+                }
+            }
+        }
+    }   // contains all ship removing logic*/ //remove ship function backup
+    /*    function countShipLength (coords, field)  {
+        console.log('field is: ',field);
+        var i = 1;
+        var j = 1;
+        var k = 1;
+        var l = 1;
+        var shipLength = 1;
+        if (Math.floor(coords/10)===coords/10) {     // if left side of the field
+            console.log('counting shiplength on left side');
+            while (field[coords + j] === 'myShipButton' || field[coords + j] === 'shipKilledButton') {
+                j++;
+                shipLength++;
+            }
+            while (field[coords - 10*k] === 'myShipButton' || field[coords - 10*k] === 'shipKilledButton') {
+                k++;
+                shipLength++;
+            }
+            while (field[coords + 10*l] === 'myShipButton' || field[coords + 10*l] === 'shipKilledButton') {
+                l++;
+                shipLength++;
+            }
+        }
+        else if (Math.floor((coords+1)/10)===(coords+1)/10) {    // right side of the field
+            console.log('counting shiplength on right side');
+            while (field[coords - i] === 'myShipButton' || field[coords - i] === 'shipKilledButton') {
+                i++;
+                shipLength++;
+            }
+            while (field[coords - 10*k] === 'myShipButton' || field[coords - 10*k] === 'shipKilledButton') {
+                k++;
+                shipLength++;
+            }
+            while (field[coords + 10*l] === 'myShipButton' || field[coords + 10*l] === 'shipKilledButton') {
+                l++;
+                shipLength++;
+            }
+        }
+        else {
+            console.log('counting shiplength on middle');
+            var leftSideReached=0;
+            var rightSideReached=0;
+            while ((field[coords - i] === 'myShipButton' || field[coords - i] === 'shipKilledButton') && leftSideReached===0) {
+                if (Math.floor((coords-i)/10)===(coords-i)/10){leftSideReached=1; console.log('leftSideReached');}
+                i++;
+                shipLength++;
+            }
+            while ((field[coords + j] === 'myShipButton' || field[coords + j] === 'shipKilledButton') && rightSideReached===0) {
+                if (Math.floor((coords+1+j)/10)===(coords+1+j)/10){rightSideReached=1; console.log('rightSideReached');}
+                j++;
+                shipLength++;
+            }
+            while (field[coords - 10*k] === 'myShipButton' || field[coords - 10*k] === 'shipKilledButton') {
+                k++;
+                shipLength++;
+            }
+            while (field[coords + 10*l] === 'myShipButton' || field[coords + 10*l] === 'shipKilledButton') {
+                l++;
+                shipLength++;
+            }
+        }
+        console.log('Shiplength is: ',shipLength);
+        return shipLength;
+    }*/ // count ship length backup
 }]);
 
 
